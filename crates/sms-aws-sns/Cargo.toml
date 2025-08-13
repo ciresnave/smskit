@@ -4,6 +4,9 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "AWS SNS SMS provider implementation for smskit."
+epository = "https://github.com/ciresnave/smskit"
+homepage = "https://github.com/ciresnave/smskit"
+
 keywords = ["sms", "aws", "sns", "provider"]
 categories = ["api-bindings", "web-programming"]
 repository = "https://github.com/yourusername/smskit"

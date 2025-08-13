@@ -4,6 +4,9 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Common traits and types for the smskit multi-provider SMS abstraction."
+epository = "https://github.com/ciresnave/smskit"
+homepage = "https://github.com/ciresnave/smskit"
+
 keywords = ["sms", "webhook", "provider", "abstraction"]
 categories = ["api-bindings", "web-programming"]
 repository = "https://github.com/yourusername/smskit"

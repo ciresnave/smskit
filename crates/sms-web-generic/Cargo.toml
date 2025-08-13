@@ -4,6 +4,9 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Framework-agnostic webhook processing for smskit SMS providers."
+repository = "https://github.com/ciresnave/smskit"
+homepage = "https://github.com/ciresnave/smskit"
+
 
 [dependencies]
 sms-core = { version = "0.2.0", path = "../sms-core" }
