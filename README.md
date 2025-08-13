@@ -4,7 +4,7 @@
 
 ## 🎯 Why smskit?
 
-Give your users the freedom to bring their own SMS provider while you code to a single, unified interface. Switch between Plivo, Twilio, AWS SNS, or any provider without changing your application code.
+Give your users the freedom to bring their own SMS provider while you code to a single, unified interface. Switch between Plivo, Twilio, AWS SNS seamlessly without changing your application code.
 
 **🔥 NEW in v0.2.0:** Universal web framework support! Works with Axum, Warp, Actix-web, Rocket, Tide, Hyper, or ANY framework you can imagine.
 
@@ -13,9 +13,9 @@ Give your users the freedom to bring their own SMS provider while you code to a 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
 │   Your App      │    │   sms-core       │    │  SMS Providers      │
-│                 │────│  (traits & types)│────│  • Plivo           │
-│ • Business Logic│    │                  │    │  • Twilio (soon)   │
-│ • Web Routes    │    └──────────────────┘    │  • AWS SNS (soon)  │
+│                 │────│  (traits & types)│────│  • Plivo ✅         │
+│ • Business Logic│    │                  │    │  • Twilio ✅        │
+│ • Web Routes    │    └──────────────────┘    │  • AWS SNS ✅       │
 └─────────────────┘             │              └─────────────────────┘
          │                      │
          ▼                      ▼
@@ -42,8 +42,10 @@ Give your users the freedom to bring their own SMS provider while you code to a 
 ```toml
 [dependencies]
 sms-core = "0.2"
-sms-plivo = "0.2"
-sms-web-axum = "0.2"
+sms-plivo = "0.2"        # Plivo provider
+sms-twilio = "0.2"       # Twilio provider
+sms-aws-sns = "0.2"      # AWS SNS provider
+sms-web-axum = "0.2"     # Axum integration
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 ```
@@ -53,12 +55,22 @@ use std::sync::Arc;
 use axum::{routing::post, Router};
 use sms_core::InboundRegistry;
 use sms_plivo::PlivoClient;
+use sms_twilio::TwilioClient;
+use sms_aws_sns::AwsSnsClient;
 use sms_web_axum::{unified_webhook, AppState};
 
 #[tokio::main]
 async fn main() {
+    // Register multiple providers - users can choose any combination!
     let plivo = PlivoClient::new("your_auth_id", "your_auth_token");
-    let registry = InboundRegistry::new().with(Arc::new(plivo));
+    let twilio = TwilioClient::new("your_account_sid", "your_auth_token");
+    let aws = AwsSnsClient::new().await.unwrap();
+
+    let registry = InboundRegistry::new()
+        .with(Arc::new(plivo))
+        .with(Arc::new(twilio))
+        .with(Arc::new(aws));
+
     let state = AppState { registry };
 
     let app = Router::new()
@@ -106,9 +118,9 @@ async fn handle_sms_webhook(provider: String, headers: Vec<(String, String)>, bo
 
 | Provider | Crate | Send SMS | Webhooks | Status |
 |----------|--------|----------|----------|--------|
-| **Plivo** | `sms-plivo` | ✅ | ✅ | Complete |
-| **Twilio** | `sms-twilio` | 🔄 | 🔄 | Coming Soon |
-| **AWS SNS** | `sms-aws-sns` | 🔄 | 🔄 | Coming Soon |
+| **Plivo** | `sms-plivo` | ✅ | ✅ | ✅ Complete |
+| **Twilio** | `sms-twilio` | ✅ | ✅ | ✅ Complete |
+| **AWS SNS** | `sms-aws-sns` | ✅ | ✅ | ✅ Complete |
 
 ## 💡 Usage Examples
 
@@ -116,14 +128,29 @@ async fn handle_sms_webhook(provider: String, headers: Vec<(String, String)>, bo
 
 ```rust
 use sms_core::{SendRequest, SmsClient};
-use sms_plivo::PlivoClient;
 
-let client = PlivoClient::new("auth_id", "auth_token");
-let response = client.send(SendRequest {
+// Plivo
+use sms_plivo::PlivoClient;
+let plivo = PlivoClient::new("auth_id", "auth_token");
+
+// Twilio
+use sms_twilio::TwilioClient;
+let twilio = TwilioClient::new("account_sid", "auth_token");
+
+// AWS SNS
+use sms_aws_sns::AwsSnsClient;
+let aws = AwsSnsClient::new().await; // Uses AWS credentials from environment
+
+// All providers use the same interface!
+let request = SendRequest {
     to: "+1234567890",
     from: "+0987654321",
     text: "Hello from smskit!"
-}).await?;
+};
+
+let response = plivo.send(request.clone()).await?;
+// OR let response = twilio.send(request.clone()).await?;
+// OR let response = aws.send(request.clone()).await?;
 
 println!("Message sent with ID: {}", response.id);
 ```
@@ -148,6 +175,7 @@ All frameworks receive the same normalized `InboundMessage`:
 
 - POST `http://yourserver.com/webhooks/plivo`
 - POST `http://yourserver.com/webhooks/twilio`
+- POST `http://yourserver.com/webhooks/aws-sns`
 - POST `http://yourserver.com/webhooks/{any_provider}`
 
 ## 🏃‍♂️ Running Examples
