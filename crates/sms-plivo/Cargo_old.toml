@@ -4,12 +4,15 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Plivo backend for smskit."
-repository = "https://github.com/ciresnave/smskit"
+repository = "https://github.com/ciresnave/smskit"
 homepage = "https://github.com/ciresnave/smskit"
+
+
 [features]
 default = ["reqwest"]
 axum = ["dep:axum"]
 reqwest = ["dep:reqwest"]
+
 [dependencies]
 sms-core = { version = "0.2.0", path = "../sms-core" }
 serde = { workspace = true }
@@ -23,7 +26,8 @@ serde_urlencoded = "0.7"
 reqwest = { version = "0.12", optional = true, features = ["json"] }
 # Optional web handler
 axum = { version = "0.7", optional = true, default-features = false, features = [
-"http1",
+  "http1",
 ] }
+
 [dev-dependencies]
 tokio = { version = "1.0", features = ["rt", "macros"] }

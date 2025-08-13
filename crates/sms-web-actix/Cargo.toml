@@ -4,13 +4,11 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Actix-web adapter for smskit SMS webhook processing."
-epository = "https://github.com/ciresnave/smskit"
+repository = "https://github.com/ciresnave/smskit"
 homepage = "https://github.com/ciresnave/smskit"
-
-
 [dependencies]
 sms-core = { version = "0.2.0", path = "../sms-core" }
-sms-web-generic = { path = "../sms-web-generic" }
+sms-web-generic = { version = "0.2.0", path = "../sms-web-generic" }
 actix-web = "4.0"
 bytes = "1"
 serde_json = "1.0"
