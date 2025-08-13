@@ -3,6 +3,7 @@ members = [
     "crates/sms-core",
     "crates/sms-plivo",
     "crates/sms-twilio",
+    "crates/sms-aws-sns",
     "crates/sms-web-axum",
     "crates/sms-web-generic",
     "crates/sms-web-warp",
@@ -10,6 +11,7 @@ members = [
     "crates/sms-web-rocket",
     "crates/sms-web-poem",
     "crates/sms-web-hyper",
+    "crates/sms-web-tide",
 ]
 resolver = "2"
 
