@@ -1,0 +1,24 @@
+[package]
+name = "sms-twilio"
+version = "0.2.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Twilio SMS provider implementation for smskit."
+keywords = ["sms", "twilio", "webhook", "provider"]
+categories = ["api-bindings", "web-programming"]
+repository = "https://github.com/yourusername/smskit"
+homepage = "https://github.com/yourusername/smskit"
+
+[dependencies]
+sms-core = { path = "../sms-core" }
+reqwest = { version = "0.12", features = ["json"] }
+base64 = "0.22"
+hmac = "0.12"
+sha1 = "0.10"
+url = "2.5"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+time = { workspace = true }
+tracing = { workspace = true }

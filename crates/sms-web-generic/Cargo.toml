@@ -1,0 +1,12 @@
+[package]
+name = "sms-web-generic"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Framework-agnostic webhook processing for smskit SMS providers."
+
+[dependencies]
+sms-core = { path = "../sms-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
