@@ -1,12 +1,12 @@
 [package]
 name = "sms-web-rocket"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Rocket adapter for smskit SMS webhook processing."
 
 [dependencies]
-sms-core = { path = "../sms-core" }
+sms-core = { version = "0.2.0", path = "../sms-core" }
 sms-web-generic = { path = "../sms-web-generic" }
 rocket = { version = "0.5", features = ["json"] }
 serde_json = "1.0"

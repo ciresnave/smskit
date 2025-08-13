@@ -1,6 +1,6 @@
 [package]
 name = "sms-plivo"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Plivo backend for smskit."
@@ -11,7 +11,7 @@ axum = ["dep:axum"]
 reqwest = ["dep:reqwest"]
 
 [dependencies]
-sms-core = { path = "../sms-core" }
+sms-core = { version = "0.2.0", path = "../sms-core" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

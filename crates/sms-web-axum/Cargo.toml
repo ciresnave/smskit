@@ -1,12 +1,12 @@
 [package]
 name = "sms-web-axum"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Axum adapter that exposes a unified webhook endpoint for multiple SMS providers."
 
 [dependencies]
-sms-core = { path = "../sms-core" }
+sms-core = { version = "0.2.0", path = "../sms-core" }
 sms-web-generic = { path = "../sms-web-generic" }
 axum = "0.8"
 bytes = "1"

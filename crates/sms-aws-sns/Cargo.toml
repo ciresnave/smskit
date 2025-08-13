@@ -10,7 +10,7 @@ repository = "https://github.com/yourusername/smskit"
 homepage = "https://github.com/yourusername/smskit"
 
 [dependencies]
-sms-core = { path = "../sms-core" }
+sms-core = { version = "0.2.0", path = "../sms-core" }
 aws-config = "1.5"
 aws-sdk-sns = "1.43"
 serde = { workspace = true }
