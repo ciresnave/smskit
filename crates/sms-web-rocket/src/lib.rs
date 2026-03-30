@@ -1,13 +1,19 @@
-use rocket::{http::Status, State};
+//! # SMS Web Rocket
+//!
+//! [Rocket](https://rocket.rs/) web framework integration for smskit webhook
+//! processing.
+
+use rocket::{http::Status, Request, State};
 use sms_core::{Headers, InboundRegistry};
 use sms_web_generic::{ResponseConverter, WebhookProcessor};
 
+/// Shared application state holding the provider registry.
 #[derive(Clone)]
 pub struct AppState {
     pub registry: InboundRegistry,
 }
 
-/// Raw body data for Rocket
+/// Raw body data extractor for Rocket.
 #[derive(Debug)]
 pub struct RawBody(pub Vec<u8>);
 
@@ -16,7 +22,7 @@ impl<'r> rocket::data::FromData<'r> for RawBody {
     type Error = Box<dyn std::error::Error + Send + Sync>;
 
     async fn from_data(
-        _req: &'r rocket::Request<'_>,
+        _req: &'r Request<'_>,
         data: rocket::Data<'r>,
     ) -> rocket::data::Outcome<'r, Self> {
         use rocket::data::ToByteUnit;
@@ -34,7 +40,25 @@ impl<'r> rocket::data::FromData<'r> for RawBody {
     }
 }
 
-/// Rocket-specific response converter
+/// Request guard that extracts HTTP headers into smskit's generic
+/// [`Headers`](sms_core::Headers) format.
+pub struct ExtractedHeaders(pub Headers);
+
+#[rocket::async_trait]
+impl<'r> rocket::request::FromRequest<'r> for ExtractedHeaders {
+    type Error = std::convert::Infallible;
+
+    async fn from_request(req: &'r Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        let headers: Headers = req
+            .headers()
+            .iter()
+            .map(|h| (h.name().to_string(), h.value().to_string()))
+            .collect();
+        rocket::request::Outcome::Success(ExtractedHeaders(headers))
+    }
+}
+
+/// Rocket-specific response converter.
 pub struct RocketResponseConverter;
 
 impl ResponseConverter for RocketResponseConverter {
@@ -58,21 +82,19 @@ impl ResponseConverter for RocketResponseConverter {
     }
 }
 
-/// Unified webhook handler for Rocket
-/// Note: Rocket's handler API doesn't easily allow access to raw headers,
-/// so we pass empty headers. For production use, you might want to use
-/// custom request guards to extract specific headers you need.
+/// Unified webhook handler for Rocket.
+///
+/// Extracts the provider name from the URL path, reads headers via a request
+/// guard, and delegates to the [`WebhookProcessor`].
 #[rocket::post("/webhooks/<provider>", data = "<body>")]
 pub fn unified_webhook(
     provider: String,
     body: RawBody,
+    extracted: ExtractedHeaders,
     state: &State<AppState>,
 ) -> (Status, (rocket::http::ContentType, String)) {
     let processor = WebhookProcessor::new(state.registry.clone());
-    // Rocket doesn't easily expose all headers in handlers, so we pass empty headers
-    // For production use, you'd want to use request guards to extract specific headers
-    let headers: Headers = vec![];
-    let response = processor.process_webhook(&provider, headers, &body.0);
+    let response = processor.process_webhook(&provider, extracted.0, &body.0);
     RocketResponseConverter::from_webhook_response(response)
 }
 
@@ -84,7 +106,25 @@ mod tests {
     fn rocket_types_compile() {
         let registry = InboundRegistry::new();
         let _state = AppState { registry };
-        // Rocket testing requires a full rocket instance, which is complex to set up
-        // This test just ensures the types compile correctly
+    }
+
+    #[test]
+    fn response_converter_maps_status_codes() {
+        let resp = sms_core::WebhookResponse {
+            status: sms_core::HttpStatus::Ok,
+            body: "{}".into(),
+            content_type: "application/json".into(),
+        };
+        let (status, (ct, body)) = RocketResponseConverter::from_webhook_response(resp);
+        assert_eq!(status, Status::Ok);
+        assert_eq!(ct, rocket::http::ContentType::JSON);
+        assert_eq!(body, "{}");
+    }
+
+    #[test]
+    fn response_converter_handles_error_status() {
+        let resp = sms_core::WebhookResponse::error(sms_core::HttpStatus::NotFound, "not found");
+        let (status, _) = RocketResponseConverter::from_webhook_response(resp);
+        assert_eq!(status, Status::NotFound);
     }
 }

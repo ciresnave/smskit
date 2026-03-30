@@ -1,7 +1,7 @@
 [package]
 name = "sms-aws-sns"
-version = "0.2.0"
-edition = "2021"
+version = "0.3.0"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "AWS SNS SMS provider implementation for smskit."
 repository = "https://github.com/ciresnave/smskit"
@@ -9,7 +9,7 @@ homepage = "https://github.com/ciresnave/smskit"
 keywords = ["sms", "aws", "sns", "provider"]
 categories = ["api-bindings", "web-programming"]
 [dependencies]
-sms-core = { version = "0.2.0", path = "../sms-core" }
+sms-core = { version = "0.3.0", path = "../sms-core" }
 aws-config = "1.5"
 aws-sdk-sns = "1.43"
 serde = { workspace = true }
@@ -18,3 +18,6 @@ thiserror = { workspace = true }
 async-trait = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["rt", "macros"] }

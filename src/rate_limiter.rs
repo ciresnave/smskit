@@ -1,23 +1,26 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 use tokio::time::sleep;
 use tracing::{debug, warn};
 
-/// Configuration for rate limiting
+/// Configuration for rate limiting.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitConfig {
-    /// Maximum number of requests per window
+    /// Maximum number of requests per window.
     pub max_requests: u32,
-    /// Window duration in seconds
+    /// Window duration in seconds.
     pub window_seconds: u64,
-    /// Whether to enable rate limiting
+    /// Whether to enable rate limiting.
     pub enabled: bool,
-    /// Per-provider rate limits (overrides global settings)
+    /// Per-provider rate limits (overrides global settings).
     pub per_provider: HashMap<String, ProviderRateLimit>,
 }
 
+/// Per-provider rate limit override.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderRateLimit {
     pub max_requests: u32,
@@ -35,7 +38,10 @@ impl Default for RateLimitConfig {
     }
 }
 
-/// Rate limiter implementation using token bucket algorithm
+/// Rate limiter implementation using a token-bucket algorithm.
+///
+/// Each unique key (typically `"provider:identifier"`) gets its own bucket.
+/// Buckets are automatically refilled over time based on the configured rate.
 #[derive(Debug)]
 pub struct RateLimiter {
     config: RateLimitConfig,
@@ -85,6 +91,7 @@ impl TokenBucket {
 }
 
 impl RateLimiter {
+    /// Create a new rate limiter with the given configuration.
     pub fn new(config: RateLimitConfig) -> Self {
         Self {
             config,
@@ -92,13 +99,15 @@ impl RateLimiter {
         }
     }
 
-    /// Check if a request should be rate limited
+    /// Check if a request should be rate limited.
+    ///
+    /// Returns [`RateLimitResult::Allowed`] if the request can proceed, or
+    /// [`RateLimitResult::Limited`] with a suggested retry-after duration.
     pub async fn check_rate_limit(&self, key: &str) -> RateLimitResult {
         if !self.config.enabled {
             return RateLimitResult::Allowed;
         }
 
-        // Determine rate limit settings for this key
         let (max_requests, window_seconds) =
             if let Some(provider_limit) = self.get_provider_limit(key) {
                 (provider_limit.max_requests, provider_limit.window_seconds)
@@ -106,7 +115,7 @@ impl RateLimiter {
                 (self.config.max_requests, self.config.window_seconds)
             };
 
-        let mut buckets = self.buckets.lock().unwrap();
+        let mut buckets = self.buckets.lock().await;
         let bucket = buckets
             .entry(key.to_string())
             .or_insert_with(|| TokenBucket::new(max_requests, window_seconds));
@@ -122,7 +131,6 @@ impl RateLimiter {
     }
 
     fn get_provider_limit(&self, key: &str) -> Option<&ProviderRateLimit> {
-        // Extract provider name from key (assuming format like "provider:identifier")
         if let Some(provider) = key.split(':').next() {
             self.config.per_provider.get(provider)
         } else {
@@ -136,7 +144,12 @@ impl RateLimiter {
         Duration::from_secs_f64(seconds_to_wait.ceil())
     }
 
-    /// Clean up old buckets to prevent memory leaks
+    /// Run a background loop that periodically cleans up idle buckets.
+    ///
+    /// Spawn this as a background task:
+    /// ```rust,ignore
+    /// tokio::spawn(limiter.cleanup_old_buckets());
+    /// ```
     pub async fn cleanup_old_buckets(&self) {
         let cleanup_interval = Duration::from_secs(300); // 5 minutes
         let max_idle_time = Duration::from_secs(3600); // 1 hour
@@ -144,7 +157,7 @@ impl RateLimiter {
         loop {
             sleep(cleanup_interval).await;
 
-            let mut buckets = self.buckets.lock().unwrap();
+            let mut buckets = self.buckets.lock().await;
             let now = Instant::now();
 
             buckets.retain(|key, bucket| {
@@ -160,18 +173,21 @@ impl RateLimiter {
     }
 }
 
-/// Result of rate limit check
+/// Result of a rate limit check.
 #[derive(Debug)]
 pub enum RateLimitResult {
+    /// The request is allowed to proceed.
     Allowed,
+    /// The request is rate-limited; retry after the given duration.
     Limited { retry_after: Duration },
 }
 
-/// Rate limiting middleware for different HTTP frameworks
-pub trait RateLimitMiddleware {
-    type Request;
-    type Response;
-    type Error;
+/// Trait for framework-specific rate limit middleware.
+#[async_trait]
+pub trait RateLimitMiddleware: Send + Sync {
+    type Request: Send;
+    type Response: Send;
+    type Error: Send;
 
     async fn apply_rate_limit(
         &self,
@@ -180,14 +196,15 @@ pub trait RateLimitMiddleware {
     ) -> Result<Self::Request, Self::Response>;
 }
 
-/// Generic rate limit key generator
+/// Generates rate-limit keys from request context.
 pub trait KeyGenerator {
+    /// Build a key from provider name and identifier (e.g. phone number, IP).
     fn generate_key(&self, provider: &str, identifier: &str) -> String {
         format!("{}:{}", provider, identifier)
     }
 
+    /// Extract the client IP from standard proxy headers.
     fn extract_client_ip(&self, headers: &sms_core::Headers) -> Option<String> {
-        // Look for common IP headers
         for (name, value) in headers {
             match name.to_lowercase().as_str() {
                 "x-forwarded-for" => return Some(value.split(',').next()?.trim().to_string()),
@@ -200,7 +217,7 @@ pub trait KeyGenerator {
     }
 }
 
-/// Default key generator implementation
+/// Default key generator implementation.
 pub struct DefaultKeyGenerator;
 
 impl KeyGenerator for DefaultKeyGenerator {}
@@ -221,7 +238,6 @@ mod tests {
 
         let limiter = RateLimiter::new(config);
 
-        // First two requests should be allowed
         match limiter.check_rate_limit("test-key").await {
             RateLimitResult::Allowed => {}
             _ => panic!("First request should be allowed"),
@@ -232,7 +248,6 @@ mod tests {
             _ => panic!("Second request should be allowed"),
         }
 
-        // Third request should be limited
         match limiter.check_rate_limit("test-key").await {
             RateLimitResult::Limited { .. } => {}
             RateLimitResult::Allowed => panic!("Third request should be limited"),
@@ -250,22 +265,18 @@ mod tests {
 
         let limiter = RateLimiter::new(config);
 
-        // Consume the token
         match limiter.check_rate_limit("test-key").await {
             RateLimitResult::Allowed => {}
             _ => panic!("First request should be allowed"),
         }
 
-        // Next request should be limited
         match limiter.check_rate_limit("test-key").await {
             RateLimitResult::Limited { .. } => {}
             RateLimitResult::Allowed => panic!("Second request should be limited"),
         }
 
-        // Wait for refill
         sleep(Duration::from_millis(1100)).await;
 
-        // Should be allowed again
         match limiter.check_rate_limit("test-key").await {
             RateLimitResult::Allowed => {}
             RateLimitResult::Limited { .. } => panic!("Request after refill should be allowed"),
@@ -283,7 +294,6 @@ mod tests {
 
         let limiter = RateLimiter::new(config);
 
-        // All requests should be allowed when disabled
         for _ in 0..10 {
             match limiter.check_rate_limit("test-key").await {
                 RateLimitResult::Allowed => {}
@@ -314,7 +324,6 @@ mod tests {
 
         let limiter = RateLimiter::new(config);
 
-        // Twilio should use its specific limit (10)
         for i in 1..=6 {
             match limiter.check_rate_limit("twilio:test").await {
                 RateLimitResult::Allowed => {}
@@ -324,7 +333,6 @@ mod tests {
             }
         }
 
-        // Other provider should use global limit (5)
         for i in 1..=5 {
             match limiter.check_rate_limit("plivo:test").await {
                 RateLimitResult::Allowed => {}
@@ -334,10 +342,36 @@ mod tests {
             }
         }
 
-        // 6th request for plivo should be limited
         match limiter.check_rate_limit("plivo:test").await {
             RateLimitResult::Limited { .. } => {}
             RateLimitResult::Allowed => panic!("6th Plivo request should be limited"),
         }
+    }
+
+    #[test]
+    fn default_key_generator() {
+        let keygen = DefaultKeyGenerator;
+        assert_eq!(keygen.generate_key("plivo", "+1234"), "plivo:+1234");
+    }
+
+    #[test]
+    fn extract_client_ip_forwarded_for() {
+        let keygen = DefaultKeyGenerator;
+        let headers = vec![("X-Forwarded-For".to_string(), "1.2.3.4, 5.6.7.8".to_string())];
+        assert_eq!(keygen.extract_client_ip(&headers), Some("1.2.3.4".to_string()));
+    }
+
+    #[test]
+    fn extract_client_ip_real_ip() {
+        let keygen = DefaultKeyGenerator;
+        let headers = vec![("X-Real-IP".to_string(), "10.0.0.1".to_string())];
+        assert_eq!(keygen.extract_client_ip(&headers), Some("10.0.0.1".to_string()));
+    }
+
+    #[test]
+    fn extract_client_ip_none() {
+        let keygen = DefaultKeyGenerator;
+        let headers = vec![("Content-Type".to_string(), "text/html".to_string())];
+        assert_eq!(keygen.extract_client_ip(&headers), None);
     }
 }

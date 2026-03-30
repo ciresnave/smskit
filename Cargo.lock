@@ -4459,7 +4459,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "sms-aws-sns"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "aws-config",
@@ -4469,24 +4469,26 @@ dependencies = [
  "sms-core",
  "thiserror 1.0.69",
  "time 0.3.41",
+ "tokio",
  "tracing",
 ]
 
 [[package]]
 name = "sms-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
  "time 0.3.41",
+ "tokio",
  "uuid",
 ]
 
 [[package]]
 name = "sms-plivo"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "axum 0.7.9",
@@ -4503,7 +4505,7 @@ dependencies = [
 
 [[package]]
 name = "sms-twilio"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -4511,17 +4513,20 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sha1 0.10.6",
  "sms-core",
  "thiserror 1.0.69",
  "time 0.3.41",
+ "tokio",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]
 name = "sms-web-actix"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "actix-web",
  "bytes",
@@ -4532,7 +4537,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-axum"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "axum 0.8.4",
  "bytes",
@@ -4543,7 +4548,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-generic"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4553,7 +4558,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-hyper"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bytes",
  "http-body-util",
@@ -4566,7 +4571,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-poem"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bytes",
  "poem",
@@ -4578,7 +4583,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-rocket"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "rocket",
  "serde_json",
@@ -4588,7 +4593,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-tide"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "async-std",
  "serde_json",
@@ -4599,7 +4604,7 @@ dependencies = [
 
 [[package]]
 name = "sms-web-warp"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bytes",
  "serde_json",
@@ -4611,9 +4616,10 @@ dependencies = [
 
 [[package]]
 name = "smskit"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "actix-web",
+ "async-trait",
  "axum 0.8.4",
  "config",
  "criterion",
@@ -4631,7 +4637,9 @@ dependencies = [
  "sms-web-axum",
  "sms-web-generic",
  "sms-web-hyper",
+ "sms-web-poem",
  "sms-web-rocket",
+ "sms-web-tide",
  "sms-web-warp",
  "tokio",
  "tower",

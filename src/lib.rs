@@ -56,7 +56,10 @@ pub mod rate_limiter;
 
 pub use config::*;
 
-/// Common imports for SMS Kit usage
+/// Common imports for SMS Kit usage.
+///
+/// Pulls in everything from `sms_core` (traits, request/response types, errors)
+/// plus the configuration and rate-limiting types from this crate.
 pub mod prelude {
     pub use crate::config::{
         AppConfig, LoggingConfig, ProvidersConfig, SecurityConfig, ServerConfig,
@@ -64,5 +67,8 @@ pub mod prelude {
     pub use crate::rate_limiter::{
         DefaultKeyGenerator, KeyGenerator, RateLimitMiddleware, RateLimitResult, RateLimiter,
     };
+    // Re-export everything from sms-core, which now includes:
+    //   SmsClient, SendRequest, OwnedSendRequest, SendResponse,
+    //   SmsRouter, FallbackClient, InboundWebhook, InboundRegistry, etc.
     pub use sms_core::*;
 }

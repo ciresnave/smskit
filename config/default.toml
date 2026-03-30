@@ -1,0 +1,40 @@
+# SMSKit default configuration
+# Override per-environment in config/{development,staging,production}.toml
+# or via SMSKIT_ prefixed environment variables (e.g. SMSKIT__SERVER__PORT=8080)
+
+[server]
+host = "0.0.0.0"
+port = 3000
+timeout_seconds = 30
+
+[providers]
+# Uncomment and fill in credentials for providers you use.
+
+# [providers.plivo]
+# auth_id = ""
+# auth_token = ""
+# verify_signatures = true
+
+# [providers.twilio]
+# account_sid = ""
+# auth_token = ""
+# verify_signatures = true
+
+# [providers.aws_sns]
+# access_key_id = ""
+# secret_access_key = ""
+# region = "us-east-1"
+
+[security]
+verify_signatures = true
+max_body_size = 1048576   # 1 MB
+request_timeout = 30
+
+[logging]
+level = "info"
+format = "json"
+
+[rate_limit]
+enabled = true
+requests_per_minute = 100
+burst_size = 10

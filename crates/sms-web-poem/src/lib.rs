@@ -1,7 +1,7 @@
 use poem::{
     web::{Data, Path},
     http::{HeaderMap, StatusCode},
-    Body, Request, Response, Result,
+    Request, Response, Result,
 };
 use bytes::Bytes;
 use sms_core::{Headers, InboundRegistry};

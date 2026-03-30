@@ -178,3 +178,56 @@ impl Default for AppConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_server_config() {
+        let cfg = ServerConfig::default();
+        assert_eq!(cfg.host, "0.0.0.0");
+        assert_eq!(cfg.port, 3000);
+        assert_eq!(cfg.timeout_seconds, 30);
+    }
+
+    #[test]
+    fn default_security_config() {
+        let cfg = SecurityConfig::default();
+        assert!(cfg.verify_signatures);
+        assert_eq!(cfg.max_body_size, 1024 * 1024);
+        assert_eq!(cfg.request_timeout, 30);
+    }
+
+    #[test]
+    fn default_logging_config() {
+        let cfg = LoggingConfig::default();
+        assert_eq!(cfg.level, "info");
+        assert_eq!(cfg.format, "json");
+    }
+
+    #[test]
+    fn default_rate_limit_config() {
+        let cfg = RateLimitConfig::default();
+        assert!(cfg.enabled);
+        assert_eq!(cfg.requests_per_minute, 100);
+        assert_eq!(cfg.burst_size, 10);
+    }
+
+    #[test]
+    fn default_app_config_has_no_providers() {
+        let cfg = AppConfig::default();
+        assert!(cfg.providers.plivo.is_none());
+        assert!(cfg.providers.twilio.is_none());
+        assert!(cfg.providers.aws_sns.is_none());
+    }
+
+    #[test]
+    fn app_config_serde_roundtrip() {
+        let cfg = AppConfig::default();
+        let json = serde_json::to_string(&cfg).unwrap();
+        let deser: AppConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deser.server.port, 3000);
+        assert_eq!(deser.security.max_body_size, 1024 * 1024);
+    }
+}
