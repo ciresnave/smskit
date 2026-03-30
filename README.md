@@ -1,6 +1,6 @@
 # smskit -- Universal Multi-Provider SMS Toolkit for Rust
 
-**Status:** v0.2.0 (beta) -- Complete framework-agnostic SMS abstraction with support for every major Rust web framework.
+**Status:** v0.3.0 -- Complete framework-agnostic SMS abstraction with unified dispatch, fallback chaining, and support for every major Rust web framework.
 
 ## Why smskit?
 
