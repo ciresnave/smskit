@@ -4,14 +4,15 @@
 //!
 //! ## Features
 //!
-//! - **Multi-provider support**: Plivo, Twilio, AWS SNS, and more
-//! - **Framework agnostic**: Works with Axum, Warp, Actix, or any HTTP framework
-//! - **Webhook processing**: Unified webhook handling for inbound SMS
-//! - **Type safety**: Strongly typed SMS operations and responses
-//! - **Rate limiting**: Built-in rate limiting with per-provider configuration
-//! - **Comprehensive configuration**: Environment-based configuration management
-//! - **Observability**: Structured logging and tracing support
-//! - **Production ready**: Security, error handling, and reliability features
+//! - **Multi-provider support**: Plivo, Twilio, AWS SNS
+//! - **Unified dispatch**: [`SmsRouter`](sms_core::SmsRouter) routes sends to named providers
+//! - **Fallback chaining**: [`FallbackClient`](sms_core::FallbackClient) tries providers in order
+//! - **Owned requests**: [`OwnedSendRequest`](sms_core::OwnedSendRequest) for async-friendly data
+//! - **`from_env()` constructors**: Read credentials from environment variables
+//! - **Framework agnostic**: Works with Axum, Warp, Actix, Rocket, Poem, Hyper, Tide
+//! - **Webhook processing**: Unified inbound webhook handling with signature verification
+//! - **Rate limiting**: Built-in per-provider rate limiting
+//! - **Configuration**: Layered TOML + env var configuration
 //!
 //! ## Quick Start
 //!
@@ -21,16 +22,15 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let client = PlivoClient::new(
-//!         "your_auth_id".to_string(),
-//!         "your_auth_token".to_string(),
-//!         None,
-//!     );
+//!     // Create from explicit credentials...
+//!     let client = PlivoClient::new("your_auth_id", "your_auth_token");
+//!     // ...or from environment variables (PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN)
+//!     let client = PlivoClient::from_env()?;
 //!
 //!     let response = client.send(SendRequest {
 //!         to: "+1234567890",
 //!         from: "+0987654321",
-//!         text: "Hello from SMS Kit!"
+//!         text: "Hello from SMS Kit!",
 //!     }).await?;
 //!
 //!     println!("Message sent with ID: {}", response.id);
@@ -38,17 +38,57 @@
 //! }
 //! ```
 //!
+//! ## Unified Dispatch
+//!
+//! Route sends to named providers — callers don't need provider crate imports:
+//!
+//! ```rust,ignore
+//! use smskit::prelude::*;
+//!
+//! let router = SmsRouter::new()
+//!     .with("plivo", plivo_client)
+//!     .with("twilio", twilio_client)
+//!     .default_provider("plivo");
+//!
+//! // Explicit dispatch:
+//! router.send_via("twilio", request).await?;
+//! // Or use the default:
+//! router.send(request).await?;
+//! ```
+//!
+//! ## Fallback Chaining
+//!
+//! Try providers in order — returns the first success:
+//!
+//! ```rust,ignore
+//! use smskit::prelude::*;
+//! use std::sync::Arc;
+//!
+//! let client = FallbackClient::new(vec![
+//!     Arc::new(primary_client),
+//!     Arc::new(backup_client),
+//! ]);
+//! let response = client.send(request).await?;
+//! ```
+//!
+//! ## Owned Requests for Async Contexts
+//!
+//! [`OwnedSendRequest`](sms_core::OwnedSendRequest) avoids lifetime friction
+//! when holding requests across `.await` points:
+//!
+//! ```rust,ignore
+//! let req = OwnedSendRequest::new("+1234567890", "+0987654321", "Hello!");
+//! let response = client.send(req.as_ref()).await?;
+//! ```
+//!
 //! ## Configuration
 //!
-//! SMS Kit uses a comprehensive configuration system that supports environment variables:
+//! Layered configuration from TOML files and `SMSKIT_`-prefixed environment variables:
 //!
 //! ```rust,ignore
 //! use smskit::config::AppConfig;
 //!
-//! let config = AppConfig::from_env()?;
-//! println!("Rate limit: {} requests per {}s",
-//!          config.rate_limit.max_requests,
-//!          config.rate_limit.window_seconds);
+//! let config = AppConfig::load()?;
 //! ```
 
 pub mod config;
